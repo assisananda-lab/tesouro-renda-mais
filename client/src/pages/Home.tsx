@@ -65,6 +65,53 @@ const ipcaData = [
   { ano: "2025", ipca: 4.83, meta: 3.0, sup: 4.5, inf: 1.5 },
 ];
 
+const cenariosMacro = [
+  {
+    nome: "Melhora Fiscal",
+    descricao: "Pais reduz deficit, inflacao cai",
+    taxaInicial: 7.05,
+    taxaFinal: 4.0,
+    cor: "#06D6A0",
+    label: "Taxa recua para IPCA+4%",
+  },
+  {
+    nome: "Cenario Base",
+    descricao: "Estabilidade macroeconomica",
+    taxaInicial: 7.05,
+    taxaFinal: 7.05,
+    cor: "#00B4D8",
+    label: "Taxa se mantem",
+  },
+  {
+    nome: "Piora Fiscal",
+    descricao: "Deficit aumenta, inflacao sobe",
+    taxaInicial: 7.05,
+    taxaFinal: 9.0,
+    cor: "#EF476F",
+    label: "Taxa sobe para IPCA+9%",
+  },
+];
+
+function calcularCenario(aporteInicial: number, aporteMensal: number, anos: number, taxaInicial: number, taxaFinal: number) {
+  const taxaMensalInicial = Math.pow(1 + taxaInicial / 100, 1 / 12) - 1;
+  const taxaMensalFinal = Math.pow(1 + taxaFinal / 100, 1 / 12) - 1;
+  const nMeses = anos * 12;
+  const metadeNMeses = nMeses / 2;
+
+  const vfInicial1 = aporteInicial * Math.pow(1 + taxaMensalInicial, metadeNMeses);
+  const vfMensal1 = aporteMensal * ((Math.pow(1 + taxaMensalInicial, metadeNMeses) - 1) / taxaMensalInicial);
+  const vfMeio = vfInicial1 + vfMensal1;
+
+  const vfInicial2 = vfMeio * Math.pow(1 + taxaMensalFinal, metadeNMeses);
+  const vfMensal2 = aporteMensal * ((Math.pow(1 + taxaMensalFinal, metadeNMeses) - 1) / taxaMensalFinal);
+  const vfFinal = vfInicial2 + vfMensal2;
+
+  const rendaMensal = vfFinal * taxaMensalFinal / (1 - Math.pow(1 + taxaMensalFinal, -240));
+  const rendaLiquida = rendaMensal * 0.85;
+
+  return { patrimonio: vfFinal, renda: rendaLiquida };
+}
+
 // ─── HOOKS ───────────────────────────────────────────────────────────────────
 
 function useCountUp(target: number, duration = 1500, start = false) {
@@ -147,6 +194,149 @@ function SectionHeader({ tag, title, subtitle }: { tag: string; title: string; s
         {title}
       </h2>
       {subtitle && <p className="text-[#94A3B8] text-lg max-w-2xl">{subtitle}</p>}
+    </div>
+  );
+}
+
+function CenariosComparacao() {
+  const [selectedCenario, setSelectedCenario] = useState(0);
+  const aporteInicial = 50000;
+  const aporteMensal = 1000;
+  const anos = 20;
+
+  const resultados = cenariosMacro.map(c => calcularCenario(aporteInicial, aporteMensal, anos, c.taxaInicial, c.taxaFinal));
+  const patrimonioMax = Math.max(...resultados.map(r => r.patrimonio));
+  const rendaMax = Math.max(...resultados.map(r => r.renda));
+
+  const trajetorias = cenariosMacro.map((c, idx) => {
+    const dados = [];
+    for (let i = 0; i <= anos; i++) {
+      const nMeses = i * 12;
+      const metadeNMeses = (anos * 12) / 2;
+      const taxaMensalInicial = Math.pow(1 + c.taxaInicial / 100, 1 / 12) - 1;
+      const taxaMensalFinal = Math.pow(1 + c.taxaFinal / 100, 1 / 12) - 1;
+      
+      let valor;
+      if (nMeses <= metadeNMeses) {
+        const vfIni = aporteInicial * Math.pow(1 + taxaMensalInicial, nMeses);
+        const vfMen = nMeses === 0 ? 0 : aporteMensal * ((Math.pow(1 + taxaMensalInicial, nMeses) - 1) / taxaMensalInicial);
+        valor = vfIni + vfMen;
+      } else {
+        const vfMeio = aporteInicial * Math.pow(1 + taxaMensalInicial, metadeNMeses) + aporteMensal * ((Math.pow(1 + taxaMensalInicial, metadeNMeses) - 1) / taxaMensalInicial);
+        const vfIni = vfMeio * Math.pow(1 + taxaMensalFinal, nMeses - metadeNMeses);
+        const vfMen = aporteMensal * ((Math.pow(1 + taxaMensalFinal, nMeses - metadeNMeses) - 1) / taxaMensalFinal);
+        valor = vfIni + vfMen;
+      }
+      dados.push({ ano: i, valor: Math.round(valor / 1000) });
+    }
+    return dados;
+  });
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {cenariosMacro.map((c, i) => (
+          <button
+            key={i}
+            onClick={() => setSelectedCenario(i)}
+            className={`p-4 rounded-lg transition-all text-left ${
+              selectedCenario === i
+                ? "border-2 bp-card"
+                : "border border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.2)]"
+            }`}
+            style={{
+              borderColor: selectedCenario === i ? c.cor : undefined,
+              background: selectedCenario === i ? `${c.cor}10` : "transparent",
+            }}
+          >
+            <div className="font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{c.nome}</div>
+            <p className="text-[#94A3B8] text-sm mt-1">{c.descricao}</p>
+            <p className="text-xs mt-2" style={{ color: c.cor }}>{c.label}</p>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bp-card p-6">
+          <h3 className="font-bold text-white mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Trajetoria do Patrimonio</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trajetorias[selectedCenario]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,180,216,0.08)" />
+                <XAxis dataKey="ano" stroke="#64748B" tick={{ fontSize: 10 }} tickFormatter={v => `${v}a`} />
+                <YAxis stroke="#64748B" tick={{ fontSize: 10 }} tickFormatter={v => `R$${v}k`} />
+                <Tooltip content={<CustomTooltip unit="k" />} />
+                <Line type="monotone" dataKey="valor" stroke={cenariosMacro[selectedCenario].cor} strokeWidth={2.5} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="bp-card p-6">
+            <p className="text-[#94A3B8] text-sm mb-1">Patrimonio Acumulado em 20 anos</p>
+            <div className="text-3xl font-bold bp-stat-number" style={{ color: cenariosMacro[selectedCenario].cor }}>
+              R$ {(resultados[selectedCenario].patrimonio / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k
+            </div>
+            <div className="mt-4 h-2 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${(resultados[selectedCenario].patrimonio / patrimonioMax) * 100}%`,
+                  background: cenariosMacro[selectedCenario].cor,
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="bp-card p-6">
+            <p className="text-[#94A3B8] text-sm mb-1">Renda Mensal Liquida (20 anos)</p>
+            <div className="text-3xl font-bold bp-stat-number" style={{ color: cenariosMacro[selectedCenario].cor }}>
+              R$ {resultados[selectedCenario].renda.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+            </div>
+            <div className="mt-4 h-2 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${(resultados[selectedCenario].renda / rendaMax) * 100}%`,
+                  background: cenariosMacro[selectedCenario].cor,
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="bp-card p-4 border-l-4" style={{ borderColor: cenariosMacro[selectedCenario].cor }}>
+            <p className="text-xs text-[#94A3B8] mb-2">Parametros da Simulacao</p>
+            <div className="space-y-1 text-sm">
+              <p>Aporte Inicial: <span className="text-white font-mono">R$ {aporteInicial.toLocaleString('pt-BR')}</span></p>
+              <p>Aporte Mensal: <span className="text-white font-mono">R$ {aporteMensal.toLocaleString('pt-BR')}</span></p>
+              <p>Periodo: <span className="text-white font-mono">{anos} anos</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {cenariosMacro.map((c, i) => (
+          <div key={i} className="bp-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full" style={{ background: c.cor }} />
+              <p className="font-semibold text-white text-sm">{c.nome}</p>
+            </div>
+            <p className="text-[#94A3B8] text-xs mb-3">{c.descricao}</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[#64748B]">Patrimonio:</span>
+                <span className="font-mono" style={{ color: c.cor }}>R$ {(resultados[i].patrimonio / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748B]">Renda Mensal:</span>
+                <span className="font-mono" style={{ color: c.cor }}>R$ {resultados[i].renda.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -597,6 +787,18 @@ export default function Home() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* ── CENÁRIOS MACROECONÔMICOS ── */}
+      <section className="py-20" style={{ background: "rgba(10,15,30,0.95)" }}>
+        <div className="container">
+          <SectionHeader
+            tag="ANÁLISE DE CENÁRIOS"
+            title="Assimetria em Diferentes Contextos Fiscais"
+            subtitle="Veja como o Tesouro Renda+ se comporta em cenários de melhora, estabilidade ou piora das contas públicas."
+          />
+          <CenariosComparacao />
         </div>
       </section>
 
