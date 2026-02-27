@@ -154,32 +154,53 @@ function SectionHeader({ tag, title, subtitle }: { tag: string; title: string; s
 // ─── SIMULATOR ───────────────────────────────────────────────────────────────
 
 function Simulator() {
+  const [aporteInicial, setAporteInicial] = useState(0);
   const [aporte, setAporte] = useState(500);
   const [anos, setAnos] = useState(20);
   const [taxa, setTaxa] = useState(7);
 
   const taxaMensal = Math.pow(1 + taxa / 100, 1 / 12) - 1;
   const nMeses = anos * 12;
-  const vf = aporte * ((Math.pow(1 + taxaMensal, nMeses) - 1) / taxaMensal);
+  // Valor futuro do aporte inicial corrigido
+  const vfInicial = aporteInicial * Math.pow(1 + taxaMensal, nMeses);
+  // Valor futuro dos aportes mensais
+  const vfMensal = aporte * ((Math.pow(1 + taxaMensal, nMeses) - 1) / taxaMensal);
+  const vf = vfInicial + vfMensal;
   const rendaMensal = vf * taxaMensal / (1 - Math.pow(1 + taxaMensal, -240));
   const rendaLiquida = rendaMensal * 0.85;
-  const totalInvestido = aporte * nMeses;
-  const multiplicador = vf / totalInvestido;
+  const totalInvestido = aporteInicial + aporte * nMeses;
+  const multiplicador = totalInvestido > 0 ? vf / totalInvestido : 0;
 
   const simData = Array.from({ length: anos + 1 }, (_, i) => {
     const n = i * 12;
-    const val = n === 0 ? aporte : aporte * ((Math.pow(1 + taxaMensal, n) - 1) / taxaMensal);
-    return { ano: i, valor: Math.round(val / 1000), investido: Math.round((aporte * n) / 1000) };
+    const vfIni = aporteInicial * Math.pow(1 + taxaMensal, n);
+    const vfMen = n === 0 ? 0 : aporte * ((Math.pow(1 + taxaMensal, n) - 1) / taxaMensal);
+    const val = vfIni + vfMen;
+    return { ano: i, valor: Math.round(val / 1000), investido: Math.round((aporteInicial + aporte * n) / 1000) };
   });
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-[#94A3B8] text-sm mb-2 font-medium">Aporte Mensal</label>
+          <label className="block text-[#94A3B8] text-sm mb-2 font-medium">Aporte Inicial (único)</label>
           <div className="flex items-center gap-3">
             <input
-              type="range" min={100} max={5000} step={100} value={aporte}
+              type="range" min={0} max={500000} step={5000} value={aporteInicial}
+              onChange={e => setAporteInicial(Number(e.target.value))}
+              className="flex-1 accent-[#FFB703]"
+            />
+            <span className="bp-stat-number text-[#FFB703] text-lg w-36 text-right">
+              R$ {aporteInicial.toLocaleString('pt-BR')}
+            </span>
+          </div>
+          <p className="text-[#64748B] text-xs mt-1">Valor aplicado de uma só vez no início</p>
+        </div>
+        <div>
+          <label className="block text-[#94A3B8] text-sm mb-2 font-medium">Aporte Mensal Recorrente</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range" min={0} max={5000} step={100} value={aporte}
               onChange={e => setAporte(Number(e.target.value))}
               className="flex-1 accent-[#00B4D8]"
             />
@@ -187,7 +208,10 @@ function Simulator() {
               R$ {aporte.toLocaleString('pt-BR')}
             </span>
           </div>
+          <p className="text-[#64748B] text-xs mt-1">Valor aplicado todo mês durante a acumulação</p>
         </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-[#94A3B8] text-sm mb-2 font-medium">Anos de Acumulação</label>
           <div className="flex items-center gap-3">
@@ -205,13 +229,12 @@ function Simulator() {
             <input
               type="range" min={4} max={9} step={0.25} value={taxa}
               onChange={e => setTaxa(Number(e.target.value))}
-              className="flex-1 accent-[#FFB703]"
+              className="flex-1 accent-[#EF476F]"
             />
-            <span className="bp-stat-number text-[#FFB703] text-lg w-24 text-right">IPCA+{taxa}%</span>
+            <span className="bp-stat-number text-[#EF476F] text-lg w-24 text-right">IPCA+{taxa}%</span>
           </div>
         </div>
       </div>
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Renda Mensal Líquida", value: `R$ ${rendaLiquida.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`, color: "#06D6A0" },
@@ -251,6 +274,7 @@ function Simulator() {
       </div>
       <p className="text-[#64748B] text-xs text-center">
         * Simulação ilustrativa. Valores reais em termos de poder de compra (IPCA+{taxa}% a.a.). IR de 15% aplicado na renda mensal.
+        {aporteInicial > 0 ? ` Aporte inicial de R$ ${aporteInicial.toLocaleString('pt-BR')} considerado no cálculo.` : ""}
       </p>
     </div>
   );
