@@ -36,6 +36,13 @@ const assimetriaData = [
   { cenario: "Taxa -3pp\n(IPCA+4%)", retorno: 135, label: "+135%" },
 ];
 
+const cenariosCurvas = [
+  { ano: 0, ipca4: 0, ipca5: 0, ipca6: 0, ipca7: 0, ipca8: 0, ipca9: 0 },
+  { ano: 1, ipca4: 3.2, ipca5: 1.8, ipca6: 0.5, ipca7: -1.2, ipca8: -3.5, ipca9: -5.8 },
+  { ano: 2, ipca4: 8.5, ipca5: 5.2, ipca6: 1.8, ipca7: -2.1, ipca8: -6.8, ipca9: -11.5 },
+  { ano: 3, ipca4: 15.2, ipca5: 10.8, ipca6: 5.5, ipca7: -0.5, ipca8: -8.2, ipca9: -15.8 },
+];
+
 const ipcaData = [
   { ano: "2000", ipca: 5.97, meta: 6.0, sup: 8.0, inf: 4.0 },
   { ano: "2001", ipca: 7.67, meta: 4.0, sup: 6.0, inf: 2.0 },
@@ -63,6 +70,17 @@ const ipcaData = [
   { ano: "2023", ipca: 4.62, meta: 3.25, sup: 4.75, inf: 1.75 },
   { ano: "2024", ipca: 4.83, meta: 3.0, sup: 4.5, inf: 1.5 },
   { ano: "2025", ipca: 4.83, meta: 3.0, sup: 4.5, inf: 1.5 },
+];
+
+const titulosDisponiveis = [
+  { vencimento: 2030, taxa: 7.15, label: "Tesouro Renda+ 2030" },
+  { vencimento: 2035, taxa: 7.05, label: "Tesouro Renda+ 2035" },
+  { vencimento: 2040, taxa: 6.95, label: "Tesouro Renda+ 2040" },
+  { vencimento: 2045, taxa: 6.83, label: "Tesouro Renda+ 2045" },
+  { vencimento: 2050, taxa: 6.72, label: "Tesouro Renda+ 2050" },
+  { vencimento: 2055, taxa: 6.61, label: "Tesouro Renda+ 2055" },
+  { vencimento: 2060, taxa: 6.50, label: "Tesouro Renda+ 2060" },
+  { vencimento: 2065, taxa: 6.40, label: "Tesouro Renda+ 2065" },
 ];
 
 const cenariosMacro = [
@@ -194,6 +212,150 @@ function SectionHeader({ tag, title, subtitle }: { tag: string; title: string; s
         {title}
       </h2>
       {subtitle && <p className="text-[#94A3B8] text-lg max-w-2xl">{subtitle}</p>}
+    </div>
+  );
+}
+
+function ComparadorAssimetriaGanho() {
+  const [tituloBase, setTituloBase] = useState(3);
+  const [taxaMercado, setTaxaMercado] = useState(9);
+  const aporteInicial = 100000;
+  const aporteMensal = 2000;
+  const anos = 20;
+
+  const taxaBase = titulosDisponiveis[tituloBase].taxa;
+  const diferencialTaxa = taxaMercado - taxaBase;
+
+  const calcularRetorno = (taxa: number) => {
+    const taxaMensal = Math.pow(1 + taxa / 100, 1 / 12) - 1;
+    const nMeses = anos * 12;
+    const vfIni = aporteInicial * Math.pow(1 + taxaMensal, nMeses);
+    const vfMen = aporteMensal * ((Math.pow(1 + taxaMensal, nMeses) - 1) / taxaMensal);
+    return vfIni + vfMen;
+  };
+
+  const patrimonioComTitulo = calcularRetorno(taxaBase);
+  const patrimonioSemTitulo = calcularRetorno(taxaMercado);
+  const ganhoOportunidade = patrimonioSemTitulo - patrimonioComTitulo;
+  const ganhoPercentual = (ganhoOportunidade / patrimonioComTitulo) * 100;
+
+  const trajetoriaComparativa = Array.from({ length: anos + 1 }, (_, i) => {
+    const nMeses = i * 12;
+    const taxaMensalBase = Math.pow(1 + taxaBase / 100, 1 / 12) - 1;
+    const taxaMensalMercado = Math.pow(1 + taxaMercado / 100, 1 / 12) - 1;
+
+    const vfIniBase = aporteInicial * Math.pow(1 + taxaMensalBase, nMeses);
+    const vfMenBase = nMeses === 0 ? 0 : aporteMensal * ((Math.pow(1 + taxaMensalBase, nMeses) - 1) / taxaMensalBase);
+    const comTitulo = vfIniBase + vfMenBase;
+
+    const vfIniMercado = aporteInicial * Math.pow(1 + taxaMensalMercado, nMeses);
+    const vfMenMercado = nMeses === 0 ? 0 : aporteMensal * ((Math.pow(1 + taxaMensalMercado, nMeses) - 1) / taxaMensalMercado);
+    const semTitulo = vfIniMercado + vfMenMercado;
+
+    return {
+      ano: i,
+      comTitulo: Math.round(comTitulo / 1000),
+      semTitulo: Math.round(semTitulo / 1000),
+      diferenca: Math.round((semTitulo - comTitulo) / 1000),
+    };
+  });
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bp-card p-6">
+          <label className="block text-[#94A3B8] text-sm mb-3 font-medium">Titulo Selecionado</label>
+          <select
+            value={tituloBase}
+            onChange={e => setTituloBase(Number(e.target.value))}
+            className="w-full px-3 py-2 rounded-lg bg-[rgba(0,180,216,0.1)] border border-[#00B4D8] text-white font-medium mb-4"
+          >
+            {titulosDisponiveis.map((t, i) => (
+              <option key={i} value={i}>
+                {t.label} - IPCA+{t.taxa}%
+              </option>
+            ))}
+          </select>
+          <div className="p-3 rounded-lg" style={{ background: "rgba(0,180,216,0.1)", border: "1px solid rgba(0,180,216,0.3)" }}>
+            <p className="text-[#94A3B8] text-xs mb-1">Taxa do Titulo</p>
+            <p className="text-2xl font-bold text-[#00B4D8]">IPCA+{taxaBase}%</p>
+          </div>
+        </div>
+
+        <div className="bp-card p-6">
+          <label className="block text-[#94A3B8] text-sm mb-3 font-medium">Taxa de Mercado (Cenario)</label>
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="range" min={4} max={12} step={0.25} value={taxaMercado}
+              onChange={e => setTaxaMercado(Number(e.target.value))}
+              className="flex-1 accent-[#EF476F]"
+            />
+            <span className="text-[#EF476F] font-mono font-bold w-16 text-right">IPCA+{taxaMercado}%</span>
+          </div>
+          <div className="p-3 rounded-lg" style={{ background: diferencialTaxa > 0 ? "rgba(239,71,111,0.1)" : "rgba(6,214,160,0.1)", border: `1px solid ${diferencialTaxa > 0 ? "rgba(239,71,111,0.3)" : "rgba(6,214,160,0.3)"}` }}>
+            <p className="text-[#94A3B8] text-xs mb-1">Diferencial</p>
+            <p className="text-2xl font-bold" style={{ color: diferencialTaxa > 0 ? "#EF476F" : "#06D6A0" }}>
+              {diferencialTaxa > 0 ? "+" : ""}{diferencialTaxa.toFixed(2)}pp
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bp-card p-6">
+        <h3 className="font-bold text-white mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Trajetoria de Patrimonio</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trajetoriaComparativa}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,180,216,0.08)" />
+              <XAxis dataKey="ano" stroke="#64748B" tick={{ fontSize: 10 }} tickFormatter={v => `${v}a`} />
+              <YAxis stroke="#64748B" tick={{ fontSize: 10 }} tickFormatter={v => `R$${v}k`} />
+              <Tooltip content={<CustomTooltip unit="k" />} />
+              <Legend />
+              <Line type="monotone" dataKey="comTitulo" name="Com Titulo (IPCA+{taxaBase}%)" stroke="#00B4D8" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="semTitulo" name="Taxa de Mercado (IPCA+{taxaMercado}%)" stroke="#EF476F" strokeWidth={2.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bp-card p-6">
+          <p className="text-[#94A3B8] text-sm mb-2">Patrimonio com Titulo (20 anos)</p>
+          <div className="text-3xl font-bold bp-stat-number text-[#00B4D8]">
+            R$ {(patrimonioComTitulo / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k
+          </div>
+        </div>
+
+        <div className="bp-card p-6">
+          <p className="text-[#94A3B8] text-sm mb-2">Patrimonio com Taxa de Mercado</p>
+          <div className="text-3xl font-bold bp-stat-number text-[#EF476F]">
+            R$ {(patrimonioSemTitulo / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k
+          </div>
+        </div>
+
+        <div className="bp-card p-6 border-l-4" style={{ borderColor: diferencialTaxa > 0 ? "#06D6A0" : "#EF476F" }}>
+          <p className="text-[#94A3B8] text-sm mb-2">Ganho/Perda de Oportunidade</p>
+          <div className="text-3xl font-bold bp-stat-number" style={{ color: diferencialTaxa > 0 ? "#06D6A0" : "#EF476F" }}>
+            R$ {Math.abs(ganhoOportunidade / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k
+          </div>
+          <p className="text-xs mt-2" style={{ color: diferencialTaxa > 0 ? "#06D6A0" : "#EF476F" }}>
+            {diferencialTaxa > 0 ? "Ganho potencial" : "Proteção"} ({Math.abs(ganhoPercentual).toFixed(1)}%)
+          </p>
+        </div>
+      </div>
+
+      <div className="bp-card p-6" style={{ background: "rgba(6,214,160,0.05)", border: "1px solid rgba(6,214,160,0.2)" }}>
+        <p className="text-[#06D6A0] font-semibold mb-3">Interpretacao da Assimetria</p>
+        <p className="text-[#94A3B8] text-sm leading-relaxed">
+          {diferencialTaxa > 0 ? (
+            <>Quando as taxas de mercado <strong>SOBEM</strong> para IPCA+{taxaMercado}%, você fica <strong>protegido</strong> no titulo IPCA+{taxaBase}% que já foi contratado. Se tivesse esperado, teria ganhado R$ {(ganhoOportunidade / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k a mais — esse é o <strong>ganho de oportunidade</strong> que você deixa de aproveitar, mas também deixa de perder se as taxas caírem.
+            </>
+          ) : (
+            <>Quando as taxas de mercado <strong>CAEM</strong> para IPCA+{taxaMercado}%, você fica <strong>beneficiado</strong> no titulo IPCA+{taxaBase}% que já foi contratado. Você ganhou R$ {Math.abs(ganhoOportunidade / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k em relação a aplicar na taxa menor — esse é o <strong>ganho de convexidade</strong> do titulo de longo prazo.
+            </>
+          )}
+        </p>
+      </div>
     </div>
   );
 }
@@ -344,10 +506,12 @@ function CenariosComparacao() {
 // ─── SIMULATOR ───────────────────────────────────────────────────────────────
 
 function Simulator() {
+  const [tituloSelecionado, setTituloSelecionado] = useState(3);
   const [aporteInicial, setAporteInicial] = useState(0);
   const [aporte, setAporte] = useState(500);
   const [anos, setAnos] = useState(20);
-  const [taxa, setTaxa] = useState(7);
+  const [ipacaCustomizado, setIpacaCustomizado] = useState(titulosDisponiveis[3].taxa);
+  const taxa = ipacaCustomizado;
 
   const taxaMensal = Math.pow(1 + taxa / 100, 1 / 12) - 1;
   const nMeses = anos * 12;
@@ -414,15 +578,17 @@ function Simulator() {
           </div>
         </div>
         <div>
-          <label className="block text-[#94A3B8] text-sm mb-2 font-medium">Taxa Real (IPCA+ %)</label>
+          <label className="block text-[#94A3B8] text-sm mb-2 font-medium">IPCA+ Customizado (%)</label>
           <div className="flex items-center gap-3">
             <input
-              type="range" min={4} max={9} step={0.25} value={taxa}
-              onChange={e => setTaxa(Number(e.target.value))}
-              className="flex-1 accent-[#EF476F]"
+              type="number" min={0.01} max={15} step={0.01} value={ipacaCustomizado}
+              onChange={e => setIpacaCustomizado(Number(e.target.value))}
+              className="flex-1 px-3 py-2 rounded-lg bg-[rgba(0,180,216,0.1)] border border-[#00B4D8] text-white font-medium text-center"
+              placeholder="Ex: 6.83"
             />
-            <span className="bp-stat-number text-[#EF476F] text-lg w-24 text-right">IPCA+{taxa}%</span>
+            <span className="bp-stat-number text-[#00B4D8] text-lg w-24 text-right">IPCA+{ipacaCustomizado.toFixed(2)}%</span>
           </div>
+          <p className="text-[#94A3B8] text-xs mt-2">Ajuste a taxa real do título (até 2 casas decimais)</p>
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -473,8 +639,10 @@ function Simulator() {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"taxas" | "assimetria" | "ipca">("taxas");
+  const [tituloGlobal, setTituloGlobal] = useState(3);
+  const [activeTab, setActiveTab] = useState<"taxas" | "assimetria" | "ipca" | "curvas">("taxas");
   const [scrolled, setScrolled] = useState(false);
+  const taxaGlobal = titulosDisponiveis[tituloGlobal].taxa;
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60);
@@ -505,6 +673,17 @@ export default function Home() {
             </span>
           </div>
           <div className="hidden md:flex items-center gap-6">
+            <select
+              value={tituloGlobal}
+              onChange={e => setTituloGlobal(Number(e.target.value))}
+              className="px-3 py-1 rounded-lg bg-[rgba(0,180,216,0.1)] border border-[#00B4D8] text-white text-sm font-medium hover:bg-[rgba(0,180,216,0.15)] transition-colors"
+            >
+              {titulosDisponiveis.map((t, i) => (
+                <option key={i} value={i}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
             {navLinks.map(link => (
               <a key={link.href} href={link.href} className="text-[#94A3B8] hover:text-[#00B4D8] transition-colors text-sm font-medium">
                 {link.label}
@@ -528,7 +707,7 @@ export default function Home() {
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-6">
               <span className="bp-badge-neutral">Análise de Investimentos</span>
-              <span className="bp-badge-positive">IPCA + 7,05% a.a.</span>
+              <span className="bp-badge-positive">IPCA + {taxaGlobal}% a.a.</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight mb-6" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -703,7 +882,8 @@ export default function Home() {
             <div className="flex gap-2 mb-6 flex-wrap">
               {[
                 { key: "taxas", label: "Histórico de Taxas" },
-                { key: "assimetria", label: "Cenários de Retorno" },
+                { key: "assimetria", label: "Cenários de Retorno (Barras)" },
+                { key: "curvas", label: "Cenários de Retorno (Curvas)" },
                 { key: "ipca", label: "Histórico IPCA" },
               ].map(tab => (
                 <button
@@ -757,6 +937,24 @@ export default function Home() {
                 </ResponsiveContainer>
               )}
 
+              {activeTab === "curvas" && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={cenariosCurvas} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,180,216,0.08)" />
+                    <XAxis dataKey="ano" stroke="#64748B" tick={{ fontSize: 10 }} tickFormatter={v => `${v}a`} />
+                    <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Line type="monotone" dataKey="ipca7" name="IPCA+7% (Base)" stroke="#00B4D8" strokeWidth={3} dot={false} />
+                    <Line type="monotone" dataKey="ipca9" name="IPCA+9% (Alta)" stroke="#8B3A3A" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                    <Line type="monotone" dataKey="ipca8" name="IPCA+8%" stroke="#A85555" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                    <Line type="monotone" dataKey="ipca6" name="IPCA+6% (Queda)" stroke="#4CAF50" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                    <Line type="monotone" dataKey="ipca5" name="IPCA+5%" stroke="#66BB6A" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                    <Line type="monotone" dataKey="ipca4" name="IPCA+4%" stroke="#81C784" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+
               {activeTab === "ipca" && (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={ipcaData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
@@ -799,6 +997,18 @@ export default function Home() {
             subtitle="Veja como o Tesouro Renda+ se comporta em cenários de melhora, estabilidade ou piora das contas públicas."
           />
           <CenariosComparacao />
+        </div>
+      </section>
+
+      {/* ── COMPARADOR DE ASSIMETRIA DE GANHO ── */}
+      <section className="py-20 bp-grid-bg">
+        <div className="container">
+          <SectionHeader
+            tag="ASSIMETRIA DE GANHO"
+            title="Ganho de Convexidade vs. Risco de Oportunidade"
+            subtitle="Selecione um titulo e simule como seu patrimonio se comporta quando as taxas de mercado mudam."
+          />
+          <ComparadorAssimetriaGanho />
         </div>
       </section>
 
@@ -1107,6 +1317,58 @@ export default function Home() {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── DISCLAIMERS ── */}
+      <section className="py-16 bp-grid-bg">
+        <div className="container">
+          <SectionHeader
+            tag="AVISOS IMPORTANTES"
+            title="Leia Antes de Investir"
+            subtitle="Informações essenciais sobre o Tesouro Renda+ e as simulações apresentadas."
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              {
+                titulo: "Valor de Mercado",
+                desc: "O valor apresentado é referente ao preço do título na data de hoje. Lembre-se: esse valor pode sofrer alterações conforme as taxas de juros do mercado mudam.",
+                icon: "💰"
+              },
+              {
+                titulo: "Projeção Bruta",
+                desc: "Projeção do valor bruto de recebimento (antes das taxas e impostos). O valor final líquido será reduzido pelo IR retido na fonte (15% a 22.5%, dependendo do tempo de aplicação).",
+                icon: "📋"
+              },
+              {
+                titulo: "Simulações Ilustrativas",
+                desc: "As simulações são baseadas em projeções de mercado. Isso não garante resultados futuros. Mercados financeiros são imprevisíveis e sujeitos a riscos.",
+                icon: "⚠️"
+              },
+              {
+                titulo: "Renda Corrigida pela Inflação",
+                desc: "A renda mensal que você receberá será corrigida mensalmente pela variação do IPCA, garantindo o poder de compra. Quanto maior a inflação, maior será sua renda.",
+                icon: "💪"
+              },
+            ].map((item, i) => (
+              <div key={i} className="bp-card p-6 border-l-4" style={{ borderColor: "#00B4D8" }}>
+                <div className="flex items-start gap-4">
+                  <span className="text-2xl flex-shrink-0">{item.icon}</span>
+                  <div>
+                    <h3 className="font-semibold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{item.titulo}</h3>
+                    <p className="text-[#94A3B8] text-sm leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 p-6 rounded-lg" style={{ background: "rgba(239,71,111,0.08)", border: "1px solid rgba(239,71,111,0.3)" }}>
+            <p className="text-[#EF476F] font-semibold mb-2">Aviso Legal</p>
+            <p className="text-[#94A3B8] text-sm leading-relaxed">
+              Este material é apenas ilustrativo e não constitui recomendação de investimento individualizada. Consulte sempre um assessor de investimentos antes de tomar decisões. 
+              Investimentos em renda fixa estão sujeitos a riscos de mercado, incluindo variações de taxa de juros e inflação. O desempenho passado não garante resultados futuros.
+            </p>
           </div>
         </div>
       </section>
