@@ -521,7 +521,10 @@ function Simulator() {
   const vfMensal = aporte * ((Math.pow(1 + taxaMensal, nMeses) - 1) / taxaMensal);
   const vf = vfInicial + vfMensal;
   const rendaMensal = vf * taxaMensal / (1 - Math.pow(1 + taxaMensal, -240));
-  const rendaLiquida = rendaMensal * 0.85;
+  const capitalMensal = vf / 240;
+  const rentabilidadeMensal = rendaMensal - capitalMensal;
+  const irMensal = rentabilidadeMensal * 0.15;
+  const rendaLiquida = rendaMensal - irMensal;
   const totalInvestido = aporteInicial + aporte * nMeses;
   const multiplicador = totalInvestido > 0 ? vf / totalInvestido : 0;
 
