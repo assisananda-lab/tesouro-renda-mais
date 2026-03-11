@@ -667,13 +667,13 @@ export default function Home() {
       {/* ── NAVBAR ── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#0A0F1E]/95 backdrop-blur-md border-b border-[rgba(0,180,216,0.15)]" : "bg-transparent"}`}>
         <div className="container flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #00B4D8, #06D6A0)" }}>
-              <span className="text-[#0A0F1E] font-bold text-sm">T+</span>
+          <div className="flex items-center gap-3">
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663388041515/YuV3dqCgqAnj3zkb8F8paS/avere_logo_639ea1c2.jfif" alt="AVERE Partners" className="h-8" />
+            <div className="hidden sm:block border-l border-[rgba(0,180,216,0.3)] pl-3">
+              <span className="font-bold text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                Tesouro Renda<span style={{ color: "#00B4D8" }}>+</span>
+              </span>
             </div>
-            <span className="font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Tesouro Renda<span style={{ color: "#00B4D8" }}>+</span>
-            </span>
           </div>
           <div className="hidden md:flex items-center gap-6">
             <select
@@ -1381,13 +1381,14 @@ export default function Home() {
         <div className="container">
           <div className="flex flex-col md:flex-row items-start justify-between gap-8">
             <div className="max-w-md">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #00B4D8, #06D6A0)" }}>
-                  <span className="text-[#0A0F1E] font-bold text-sm">T+</span>
+              <div className="flex items-center gap-3 mb-3">
+                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663388041515/YuV3dqCgqAnj3zkb8F8paS/avere_logo_639ea1c2.jfif" alt="AVERE Partners" className="h-8" />
+                <div>
+                  <span className="font-bold text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Tesouro Renda<span style={{ color: "#00B4D8" }}>+</span>
+                  </span>
+                  <p className="text-[#64748B] text-xs">por AVERE Partners</p>
                 </div>
-                <span className="font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Tesouro Renda<span style={{ color: "#00B4D8" }}>+</span>
-                </span>
               </div>
               <p className="text-[#64748B] text-sm leading-relaxed">
                 Material de consultoria de investimentos. As simulações são ilustrativas e não constituem garantia de retorno. 
